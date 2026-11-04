@@ -23,28 +23,46 @@ export const SplitText: React.FC<SplitTextProps> = ({
 
   useGSAP(
     () => {
-      if (!containerRef.current) return;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (typeof window === "undefined" || !containerRef.current) return;
 
       const wordElements = containerRef.current.querySelectorAll(".split-word");
+      const mm = gsap.matchMedia();
 
-      gsap.fromTo(
-        wordElements,
+      mm.add(
         {
-          opacity: 0,
-          y: 28,
-          filter: "blur(6px)",
+          isDesktop: "(min-width: 768px)",
+          isMobile: "(max-width: 767px)",
+          reduceMotion: "(prefers-reduced-motion: reduce)",
         },
-        {
-          opacity: 1,
-          y: 0,
-          filter: "blur(0px)",
-          duration,
-          delay,
-          stagger: 0.08,
-          ease: "power3.out",
+        (context) => {
+          const { isMobile, reduceMotion } = context.conditions!;
+
+          if (reduceMotion) {
+            gsap.set(wordElements, { opacity: 1, y: 0, filter: "none" });
+            return;
+          }
+
+          gsap.fromTo(
+            wordElements,
+            {
+              opacity: 0,
+              y: isMobile ? 14 : 28,
+              filter: isMobile ? "none" : "blur(6px)",
+            },
+            {
+              opacity: 1,
+              y: 0,
+              filter: "none",
+              duration: isMobile ? 0.5 : duration,
+              delay: isMobile ? 0.1 : delay,
+              stagger: isMobile ? 0.04 : 0.08,
+              ease: "power2.out",
+            }
+          );
         }
       );
+
+      return () => mm.revert();
     },
     { scope: containerRef, dependencies: [text, delay, duration] }
   );
@@ -64,4 +82,3 @@ export const SplitText: React.FC<SplitTextProps> = ({
     </h1>
   );
 };
-

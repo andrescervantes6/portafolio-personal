@@ -16,25 +16,41 @@ export const TradingJourney: React.FC = () => {
   useGSAP(
     () => {
       if (!containerRef.current || !lineRef.current) return;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        gsap.set(lineRef.current, { scaleY: 1 });
-        return;
-      }
 
-      gsap.fromTo(
-        lineRef.current,
-        { scaleY: 0 },
+      const mm = gsap.matchMedia();
+
+      mm.add(
         {
-          scaleY: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 75%",
-            end: "bottom 80%",
-            scrub: 0.8,
-          },
+          isDesktop: "(min-width: 768px)",
+          isMobile: "(max-width: 767px)",
+          reduceMotion: "(prefers-reduced-motion: reduce)",
+        },
+        (context) => {
+          const { isMobile, reduceMotion } = context.conditions!;
+
+          if (reduceMotion) {
+            gsap.set(lineRef.current, { scaleY: 1 });
+            return;
+          }
+
+          gsap.fromTo(
+            lineRef.current,
+            { scaleY: 0 },
+            {
+              scaleY: 1,
+              ease: "none",
+              scrollTrigger: {
+                trigger: containerRef.current,
+                start: isMobile ? "top 88%" : "top 75%",
+                end: isMobile ? "bottom 92%" : "bottom 80%",
+                scrub: isMobile ? 0.3 : 0.8,
+              },
+            }
+          );
         }
       );
+
+      return () => mm.revert();
     },
     { scope: containerRef }
   );

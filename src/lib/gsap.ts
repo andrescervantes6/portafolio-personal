@@ -4,10 +4,13 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 
-// Register ScrollTrigger only in client browser environment
+// Safe client-side plugin registration with graceful error handling
 if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, useGSAP);
+  try {
+    gsap.registerPlugin(ScrollTrigger, useGSAP);
+  } catch (err) {
+    console.warn("GSAP ScrollTrigger registration warning:", err);
+  }
 }
 
 export { gsap, ScrollTrigger, useGSAP };
-

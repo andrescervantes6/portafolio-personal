@@ -27,29 +27,41 @@ export const CountUp: React.FC<CountUpProps> = ({
     () => {
       if (typeof window === "undefined" || !elementRef.current) return;
 
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        setDisplayValue(to);
-        return;
-      }
+      const mm = gsap.matchMedia();
 
-      const counter = { val: from };
+      mm.add(
+        {
+          reduceMotion: "(prefers-reduced-motion: reduce)",
+          all: "(min-width: 0px)",
+        },
+        (context) => {
+          if (context.conditions?.reduceMotion) {
+            setDisplayValue(to);
+            return;
+          }
 
-      gsap.to(counter, {
-        val: to,
-        duration,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: elementRef.current,
-          start: "top 90%",
-          once: true,
-        },
-        onUpdate: () => {
-          setDisplayValue(Math.floor(counter.val));
-        },
-        onComplete: () => {
-          setDisplayValue(to);
-        },
-      });
+          const counter = { val: from };
+
+          gsap.to(counter, {
+            val: to,
+            duration,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: elementRef.current,
+              start: "top 95%",
+              once: true,
+            },
+            onUpdate: () => {
+              setDisplayValue(Math.floor(counter.val));
+            },
+            onComplete: () => {
+              setDisplayValue(to);
+            },
+          });
+        }
+      );
+
+      return () => mm.revert();
     },
     { scope: elementRef, dependencies: [from, to, duration] }
   );
@@ -62,4 +74,3 @@ export const CountUp: React.FC<CountUpProps> = ({
     </span>
   );
 };
-

@@ -12,13 +12,17 @@ export const Navbar: React.FC = () => {
   const [activeSection, setActiveSection] = useState("inicio");
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const handleScroll = () => {
+      if (typeof window === "undefined") return;
       setScrolled(window.scrollY > 30);
 
       const sections = portfolioContent.navigation.map((item) => item.href.replace("#", ""));
-      const scrollPosition = window.scrollY + 200;
+      const scrollPosition = window.scrollY + 160;
 
       for (const section of sections) {
+        if (typeof document === "undefined") continue;
         const el = document.getElementById(section);
         if (el) {
           const top = el.offsetTop;
@@ -43,8 +47,8 @@ export const Navbar: React.FC = () => {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#08090b]/80 backdrop-blur-xl border-b border-white/[0.08] shadow-lg shadow-black/40 py-3.5"
-          : "bg-transparent py-5"
+          ? "bg-[#08090b]/85 backdrop-blur-xl border-b border-white/[0.08] shadow-lg shadow-black/40 py-3"
+          : "bg-transparent py-4 sm:py-5"
       }`}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
@@ -118,7 +122,7 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-x-0 top-[65px] bg-[#0c0e12]/95 backdrop-blur-2xl border-b border-white/10 px-6 py-6 shadow-2xl transition-all"
+          className="md:hidden fixed inset-x-0 top-[57px] bg-[#0c0e12]/98 backdrop-blur-2xl border-b border-white/10 px-6 py-6 shadow-2xl transition-all"
         >
           <nav className="flex flex-col gap-3">
             {portfolioContent.navigation.map((item) => (
