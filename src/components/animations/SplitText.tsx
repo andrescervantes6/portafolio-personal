@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { isSafeSplit, isSafeGsap } from "@/lib/safe-mode";
 
 interface SplitTextProps {
   text: string;
@@ -19,56 +20,53 @@ export const SplitText: React.FC<SplitTextProps> = ({
   duration = 0.8,
 }) => {
   const containerRef = useRef<HTMLHeadingElement>(null);
+  const [isDesktopAnimation, setIsDesktopAnimation] = useState(false);
   const words = text.split(" ");
+
+  useEffect(() => {
+    // Solo activar división dinámica en desktop cuando no esté en safe mode
+    if (typeof window !== "undefined" && window.innerWidth >= 768 && !isSafeSplit() && !isSafeGsap()) {
+      setIsDesktopAnimation(true);
+    }
+  }, []);
 
   useGSAP(
     () => {
-      if (typeof window === "undefined" || !containerRef.current) return;
+      if (!isDesktopAnimation || !containerRef.current) return;
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
       const wordElements = containerRef.current.querySelectorAll(".split-word");
-      const mm = gsap.matchMedia();
 
-      mm.add(
+      gsap.fromTo(
+        wordElements,
         {
-          isDesktop: "(min-width: 768px)",
-          isMobile: "(max-width: 767px)",
-          reduceMotion: "(prefers-reduced-motion: reduce)",
+          opacity: 0,
+          y: 20,
         },
-        (context) => {
-          const { isMobile, reduceMotion } = context.conditions!;
-
-          if (reduceMotion) {
-            gsap.set(wordElements, { opacity: 1, y: 0, filter: "none" });
-            return;
-          }
-
-          gsap.fromTo(
-            wordElements,
-            {
-              opacity: 0,
-              y: isMobile ? 14 : 28,
-              filter: isMobile ? "none" : "blur(6px)",
-            },
-            {
-              opacity: 1,
-              y: 0,
-              filter: "none",
-              duration: isMobile ? 0.5 : duration,
-              delay: isMobile ? 0.1 : delay,
-              stagger: isMobile ? 0.04 : 0.08,
-              ease: "power2.out",
-            }
-          );
+        {
+          opacity: 1,
+          y: 0,
+          duration,
+          delay,
+          stagger: 0.06,
+          ease: "power2.out",
         }
       );
-
-      return () => mm.revert();
     },
-    { scope: containerRef, dependencies: [text, delay, duration] }
+    { scope: containerRef, dependencies: [isDesktopAnimation, text, delay, duration] }
   );
 
+  // En móvil o SSR: texto plano nativo, inmediato, accesible y visible sin retraso
+  if (!isDesktopAnimation) {
+    return (
+      <h1 ref={containerRef} className={`opacity-100 visible ${className}`}>
+        {text}
+      </h1>
+    );
+  }
+
   return (
-    <h1 ref={containerRef} className={className}>
+    <h1 ref={containerRef} className={`opacity-100 visible ${className}`}>
       {words.map((word, index) => (
         <span
           key={`${word}-${index}`}

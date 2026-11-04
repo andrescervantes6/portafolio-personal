@@ -6,6 +6,7 @@ import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Reveal } from "@/components/animations/Reveal";
 import { Card } from "@/components/ui/Card";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { isSafeGsap } from "@/lib/safe-mode";
 import { CheckCircle2, CircleDot, Target, Quote } from "lucide-react";
 
 export const TradingJourney: React.FC = () => {
@@ -16,41 +17,36 @@ export const TradingJourney: React.FC = () => {
   useGSAP(
     () => {
       if (!containerRef.current || !lineRef.current) return;
+      if (isSafeGsap() || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+        gsap.set(lineRef.current, { scaleY: 1 });
+        return;
+      }
 
-      const mm = gsap.matchMedia();
+      // En móvil, la línea se muestra completa estática para evitar scrub continuo
+      if (window.innerWidth < 768) {
+        gsap.set(lineRef.current, { scaleY: 1 });
+        return;
+      }
 
-      mm.add(
+      const anim = gsap.fromTo(
+        lineRef.current,
+        { scaleY: 0 },
         {
-          isDesktop: "(min-width: 768px)",
-          isMobile: "(max-width: 767px)",
-          reduceMotion: "(prefers-reduced-motion: reduce)",
-        },
-        (context) => {
-          const { isMobile, reduceMotion } = context.conditions!;
-
-          if (reduceMotion) {
-            gsap.set(lineRef.current, { scaleY: 1 });
-            return;
-          }
-
-          gsap.fromTo(
-            lineRef.current,
-            { scaleY: 0 },
-            {
-              scaleY: 1,
-              ease: "none",
-              scrollTrigger: {
-                trigger: containerRef.current,
-                start: isMobile ? "top 88%" : "top 75%",
-                end: isMobile ? "bottom 92%" : "bottom 80%",
-                scrub: isMobile ? 0.3 : 0.8,
-              },
-            }
-          );
+          scaleY: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 75%",
+            end: "bottom 80%",
+            scrub: 0.6,
+          },
         }
       );
 
-      return () => mm.revert();
+      return () => {
+        if (anim.scrollTrigger) anim.scrollTrigger.kill();
+        anim.kill();
+      };
     },
     { scope: containerRef }
   );
@@ -105,7 +101,7 @@ export const TradingJourney: React.FC = () => {
 
         {/* Featured Motto Card */}
         <Reveal direction="up" delay={0.15} duration={0.7} className="mb-14">
-          <div className="relative overflow-hidden rounded-2xl border border-[#0284c7]/35 bg-gradient-to-r from-[#111317] via-[#101926] to-[#111317] p-6 sm:p-8 backdrop-blur-xl shadow-xl hover:shadow-[0_15px_35px_-5px_rgba(14,165,233,0.22)] transition-shadow duration-300">
+          <div className="relative overflow-hidden rounded-2xl border border-[#0284c7]/35 bg-[#111317] p-6 sm:p-8 shadow-xl">
             <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
               <Quote className="w-24 h-24 text-[#38bdf8]" />
             </div>
@@ -130,7 +126,7 @@ export const TradingJourney: React.FC = () => {
           {/* Static background track line */}
           <div className="absolute left-[13px] sm:left-[21px] top-4 bottom-4 w-[2px] bg-white/[0.08]" />
 
-          {/* Animated GSAP progress line in Sky Blue */}
+          {/* Progress line */}
           <div
             ref={lineRef}
             className="absolute left-[13px] sm:left-[21px] top-4 bottom-4 w-[2px] bg-gradient-to-b from-[#0284c7] via-[#38bdf8] to-[#0284c7] origin-top shadow-[0_0_10px_rgba(56,189,248,0.5)]"
@@ -160,8 +156,8 @@ export const TradingJourney: React.FC = () => {
                     <Card
                       className={`p-5 sm:p-6 transition-all duration-300 ${
                         isInProgress
-                          ? "border-[#0284c7]/60 bg-[#0e1626]/90 shadow-lg shadow-[#0284c7]/20 hover:shadow-[0_15px_40px_-5px_rgba(14,165,233,0.3)]"
-                          : "border-white/[0.08] hover:border-[#0284c7]/50 hover:shadow-[0_15px_35px_-5px_rgba(14,165,233,0.2)]"
+                          ? "border-[#0284c7]/60 bg-[#0e1626]/90 shadow-lg shadow-[#0284c7]/20"
+                          : "border-white/[0.08]"
                       }`}
                       spotlightColor="rgba(14, 165, 233, 0.16)"
                     >

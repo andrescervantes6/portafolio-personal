@@ -25,12 +25,15 @@ export const Card: React.FC<CardProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!divRef.current || !spotlight) return;
+    if (typeof window !== "undefined" && window.innerWidth < 768) return;
     const rect = divRef.current.getBoundingClientRect();
     setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
   const handleMouseEnter = () => {
-    if (spotlight) setOpacity(1);
+    if (spotlight && typeof window !== "undefined" && window.innerWidth >= 768) {
+      setOpacity(1);
+    }
   };
 
   const handleMouseLeave = () => {
@@ -44,14 +47,14 @@ export const Card: React.FC<CardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111317]/80 backdrop-blur-xl transition-all duration-300 hover:border-[#38bdf8]/40 hover:shadow-[0_15px_40px_-5px_rgba(14,165,233,0.22)]",
+        "relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111317]/95 sm:bg-[#111317]/80 sm:backdrop-blur-xl transition-all duration-300 hover:border-[#38bdf8]/40 hover:shadow-[0_15px_40px_-5px_rgba(14,165,233,0.22)]",
         className
       )}
       {...props}
     >
       {spotlight && (
         <div
-          className="pointer-events-none absolute -inset-px transition-opacity duration-300"
+          className="pointer-events-none absolute -inset-px transition-opacity duration-300 hidden sm:block"
           style={{
             opacity,
             background: `radial-gradient(550px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 60%)`,

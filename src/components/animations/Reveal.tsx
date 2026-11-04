@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { isSafeGsap } from "@/lib/safe-mode";
 
 interface RevealProps {
   children: React.ReactNode;
@@ -17,8 +18,8 @@ export const Reveal: React.FC<RevealProps> = ({
   children,
   direction = "up",
   delay = 0,
-  duration = 0.8,
-  distance = 36,
+  duration = 0.7,
+  distance = 30,
   className = "",
   cascade = false,
 }) => {
@@ -26,84 +27,74 @@ export const Reveal: React.FC<RevealProps> = ({
 
   useGSAP(
     () => {
+      // 1. En móvil (< 768px), en safe mode o con reduced-motion, NO crear ScrollTriggers.
+      // El contenido permanece 100% visible inmediatamente sin bloquear el hilo principal.
       if (typeof window === "undefined" || !containerRef.current) return;
+      if (isSafeGsap()) return;
+      if (window.innerWidth < 768) return;
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
       const targets = cascade
         ? containerRef.current.children
         : containerRef.current;
 
-      const mm = gsap.matchMedia();
+      let xOffset = 0;
+      let yOffset = 0;
 
-      mm.add(
+      switch (direction) {
+        case "up":
+          yOffset = distance;
+          break;
+        case "down":
+          yOffset = -distance;
+          break;
+        case "left":
+          xOffset = distance;
+          break;
+        case "right":
+          xOffset = -distance;
+          break;
+        case "none":
+        default:
+          break;
+      }
+
+      // Animación progresiva exclusivamente en desktop
+      const anim = gsap.fromTo(
+        targets,
         {
-          isDesktop: "(min-width: 768px)",
-          isMobile: "(max-width: 767px)",
-          reduceMotion: "(prefers-reduced-motion: reduce)",
+          opacity: 0,
+          x: xOffset,
+          y: yOffset,
         },
-        (context) => {
-          const { isMobile, reduceMotion } = context.conditions!;
-
-          if (reduceMotion) {
-            gsap.set(targets, { opacity: 1, x: 0, y: 0 });
-            return;
-          }
-
-          let xOffset = 0;
-          let yOffset = 0;
-          const effDistance = isMobile ? Math.min(distance, 18) : distance;
-          const effDuration = isMobile ? Math.min(duration, 0.5) : duration;
-
-          switch (direction) {
-            case "up":
-              yOffset = effDistance;
-              break;
-            case "down":
-              yOffset = -effDistance;
-              break;
-            case "left":
-              xOffset = effDistance;
-              break;
-            case "right":
-              xOffset = -effDistance;
-              break;
-            case "none":
-            default:
-              break;
-          }
-
-          gsap.fromTo(
-            targets,
-            {
-              opacity: 0,
-              x: xOffset,
-              y: yOffset,
-            },
-            {
-              opacity: 1,
-              x: 0,
-              y: 0,
-              duration: effDuration,
-              delay: isMobile ? 0 : delay,
-              ease: "power2.out",
-              stagger: cascade ? (isMobile ? 0.08 : 0.12) : 0,
-              scrollTrigger: {
-                trigger: containerRef.current,
-                start: isMobile ? "top 95%" : "top 88%",
-                toggleActions: "play none none none",
-                once: true,
-              },
-            }
-          );
+        {
+          opacity: 1,
+          x: 0,
+          y: 0,
+          duration,
+          delay,
+          ease: "power2.out",
+          stagger: cascade ? 0.1 : 0,
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 90%",
+            toggleActions: "play none none none",
+            once: true,
+          },
         }
       );
 
-      return () => mm.revert();
+      return () => {
+        if (anim.scrollTrigger) anim.scrollTrigger.kill();
+        anim.kill();
+      };
     },
     { scope: containerRef, dependencies: [direction, delay, duration, distance, cascade] }
   );
 
+  // El estado inicial del HTML/CSS siempre es 100% visible:
   return (
-    <div ref={containerRef} className={className}>
+    <div ref={containerRef} className={`opacity-100 visible ${className}`}>
       {children}
     </div>
   );
